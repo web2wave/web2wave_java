@@ -1,0 +1,20 @@
+plugins {
+    id 'java'
+}
+
+group = 'com.web2wave'
+version = '1.0'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation("org.json:json:20250107")
+    testImplementation platform('org.junit:junit-bom:5.10.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+}
+
+test {
+    useJUnitPlatform()
+}
