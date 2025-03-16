@@ -34,7 +34,8 @@ public class Web2Wave {
     private static Web2Wave instance;
     private String apiKey;
 
-    private Web2Wave() {}
+    private Web2Wave() {
+    }
 
     public static synchronized Web2Wave getInstance() {
         if (instance == null) {
@@ -126,39 +127,40 @@ public class Web2Wave {
         return null;
     }
 
-    public boolean updateUserProperty(String userID, String property, String value) {
+    public Result<Boolean> updateUserProperty(String userID, String property, String value) {
         checkApiKey();
         String url = buildUrl(API_USER_PROPERTIES, Collections.singletonMap(KEY_USER, userID));
         JSONObject body = new JSONObject();
+
         try {
             body.put(KEY_PROPERTY, property);
             body.put(KEY_VALUE, value);
         } catch (JSONException e) {
-            e.printStackTrace();
-            return false;
+            return Result.failure(e);
         }
 
         String response = makeRequest(url, "POST", body.toString());
         if (response != null) {
             try {
                 JSONObject jsonResponse = new JSONObject(response);
-                return "1".equals(jsonResponse.optString(KEY_RESULT, ""));
+                Boolean isSuccessful = jsonResponse.optString(KEY_RESULT, "").equals("1");
+                return Result.success(isSuccessful);
             } catch (JSONException e) {
-                e.printStackTrace();
+                return Result.failure(e);
             }
         }
-        return false;
+        return Result.failure(new Exception("Failed to update properties"));
     }
 
-    public boolean setRevenuecatProfileID(String appUserID, String revenueCatProfileID) {
+    public Result<Boolean> setRevenuecatProfileID(String appUserID, String revenueCatProfileID) {
         return updateUserProperty(appUserID, PROFILE_ID_REVENUECAT, revenueCatProfileID);
     }
 
-    public boolean setAdaptyProfileID(String appUserID, String adaptyProfileID) {
+    public Result<Boolean> setAdaptyProfileID(String appUserID, String adaptyProfileID) {
         return updateUserProperty(appUserID, PROFILE_ID_ADAPTY, adaptyProfileID);
     }
 
-    public boolean setQonversionProfileID(String appUserID, String qonversionProfileID) {
+    public Result<Boolean> setQonversionProfileID(String appUserID, String qonversionProfileID) {
         return updateUserProperty(appUserID, PROFILE_ID_QONVERSION, qonversionProfileID);
     }
 
@@ -170,21 +172,7 @@ public class Web2Wave {
 
     private String makeRequest(String url, String method, String body) {
         try {
-            HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
-            connection.setRequestMethod(method);
-            connection.setRequestProperty("api-key", apiKey);
-            connection.setRequestProperty("Cache-Control", "no-cache");
-            connection.setRequestProperty("Pragma", "no-cache");
-
-            if ("POST".equals(method)) {
-                connection.setRequestProperty("Content-Type", "application/json");
-                connection.setDoOutput(true);
-                try (OutputStream os = connection.getOutputStream()) {
-                    byte[] input = body.getBytes(StandardCharsets.UTF_8);
-                    os.write(input, 0, input.length);
-                }
-            }
-
+            HttpURLConnection connection = getHttpURLConnection(url, method, body);
             if (connection.getResponseCode() == HttpURLConnection.HTTP_OK) {
                 BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
                 StringBuilder response = new StringBuilder();
@@ -201,6 +189,24 @@ public class Web2Wave {
             System.err.println("Request failed: " + e.getMessage());
         }
         return null;
+    }
+
+    private HttpURLConnection getHttpURLConnection(String url, String method, String body) throws IOException {
+        HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
+        connection.setRequestMethod(method);
+        connection.setRequestProperty("api-key", apiKey);
+        connection.setRequestProperty("Cache-Control", "no-cache");
+        connection.setRequestProperty("Pragma", "no-cache");
+
+        if ("POST".equals(method)) {
+            connection.setRequestProperty("Content-Type", "application/json");
+            connection.setDoOutput(true);
+            try (OutputStream os = connection.getOutputStream()) {
+                byte[] input = body.getBytes(StandardCharsets.UTF_8);
+                os.write(input, 0, input.length);
+            }
+        }
+        return connection;
     }
 
     private Map<String, Object> jsonToMap(JSONObject jsonObject) throws JSONException {
@@ -224,3 +230,7 @@ public class Web2Wave {
         return list;
     }
 }
+
+
+
+
