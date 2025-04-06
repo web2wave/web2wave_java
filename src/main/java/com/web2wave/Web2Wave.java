@@ -19,17 +19,29 @@ public class Web2Wave {
 
     private static final String API_SUBSCRIPTIONS = "api/user/subscriptions";
     private static final String API_USER_PROPERTIES = "api/user/properties";
+    private static final String API_SUBSCRIPTION_CANCEL = "api/subscription/cancel";
+    private static final String API_SUBSCRIPTION_REFUND = "api/subscription/refund";
+    private static final String API_SUBSCRIPTION_CHARGE = "api/subscription/user/charge";
 
     private static final String KEY_USER = "user";
+    private static final String KEY_USER_ID = "user_id";
+    private static final String KEY_PRICE_ID = "price_id";
+    private static final String KEY_COMMENT = "comment";
     private static final String KEY_SUBSCRIPTION = "subscription";
     private static final String KEY_PROPERTIES = "properties";
     private static final String KEY_PROPERTY = "property";
     private static final String KEY_VALUE = "value";
     private static final String KEY_STATUS = "status";
     private static final String KEY_RESULT = "result";
+    private static final String KEY_PAY_SYSTEM = "pay_system_id";
+    private static final String KEY_INVOICE_ID = "invoice_id";
 
     private static final String VALUE_ACTIVE = "active";
     private static final String VALUE_TRIAL = "trialing";
+
+    private static final String METHOD_TYPE_POST = "POST";
+    private static final String METHOD_TYPE_GET = "GET";
+    private static final String METHOD_TYPE_PUT = "PUT";
 
     private static Web2Wave instance;
     private String apiKey;
@@ -102,10 +114,90 @@ public class Web2Wave {
         return Collections.emptyList();
     }
 
+
+    public Result<Boolean> cancelSubscription(String paySystemId, String comment) {
+        checkApiKey();
+        try {
+            String url = buildUrl(API_SUBSCRIPTION_CANCEL, null);
+            Map<String, String> bodyMap = new HashMap<>();
+            bodyMap.put(KEY_PAY_SYSTEM, paySystemId);
+
+            if (comment != null && !comment.isBlank()) {
+                bodyMap.put(KEY_COMMENT, comment);
+            }
+
+            String body = new JSONObject(bodyMap).toString();
+            String response = makeRequest(url, METHOD_TYPE_PUT, body);
+            JSONObject json = response != null ? new JSONObject(response) : null;
+
+            if (json != null && "1".equals(json.optString("success"))) {
+                return Result.success(true);
+            } else {
+                return Result.failure(new Exception(json != null ? json.optString("message", "Unknown error") : "Empty response"));
+            }
+
+        } catch (Exception e) {
+            return Result.failure(e);
+        }
+    }
+
+    public Result<Boolean> chargeUser(String web2waveUserId, int priceId) {
+        checkApiKey();
+        try {
+            String url = buildUrl(API_SUBSCRIPTION_CHARGE, null);
+
+            Map<String, String> bodyMap = new HashMap<>();
+            bodyMap.put(KEY_USER_ID, web2waveUserId);
+            bodyMap.put(KEY_PRICE_ID, Integer.toString(priceId));
+
+            String body = new JSONObject(bodyMap).toString();
+            String response = makeRequest(url, METHOD_TYPE_PUT, body);
+            JSONObject json = response != null ? new JSONObject(response) : null;
+
+            if (json != null && "1".equals(json.optString("success"))) {
+                return Result.success(true);
+            } else {
+                return Result.failure(new Exception(json != null ? json.optString("message", "Unknown error") : "Empty response"));
+            }
+
+        } catch (Exception e) {
+            return Result.failure(e);
+        }
+    }
+
+    public Result<Boolean> refundSubscription(String paySystemId, String invoiceId, String comment) {
+        checkApiKey();
+        try {
+            String url = buildUrl(API_SUBSCRIPTION_REFUND, null);
+
+            Map<String, String> bodyMap = new HashMap<>();
+            bodyMap.put(KEY_PAY_SYSTEM, paySystemId);
+            bodyMap.put(KEY_INVOICE_ID, invoiceId);
+
+            if (comment != null && !comment.isBlank()) {
+                bodyMap.put(KEY_COMMENT, comment);
+            }
+
+            String body = new JSONObject(bodyMap).toString();
+            String response = makeRequest(url, METHOD_TYPE_PUT, body);
+            JSONObject json = response != null ? new JSONObject(response) : null;
+
+            if (json != null && "1".equals(json.optString("success"))) {
+                return Result.success(true);
+            } else {
+                return Result.failure(new Exception(json != null ? json.optString("message", "Unknown error") : "Empty response"));
+            }
+
+        } catch (Exception e) {
+            return Result.failure(e);
+        }
+    }
+
+
     public Map<String, String> fetchUserProperties(String userID) {
         checkApiKey();
         String url = buildUrl(API_USER_PROPERTIES, Collections.singletonMap(KEY_USER, userID));
-        String response = makeRequest(url, "GET", null);
+        String response = makeRequest(url, METHOD_TYPE_GET, null);
         if (response != null) {
             try {
                 JSONObject json = new JSONObject(response);
@@ -139,7 +231,7 @@ public class Web2Wave {
             return Result.failure(e);
         }
 
-        String response = makeRequest(url, "POST", body.toString());
+        String response = makeRequest(url, METHOD_TYPE_POST, body.toString());
         if (response != null) {
             try {
                 JSONObject jsonResponse = new JSONObject(response);
