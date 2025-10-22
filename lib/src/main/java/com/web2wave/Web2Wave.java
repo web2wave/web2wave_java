@@ -316,7 +316,8 @@ public class Web2Wave {
             @NonNull String url,
             @NonNull Web2WaveWebListener listener,
             int topOffset,
-            int bottomOffset
+            int bottomOffset,
+            int backgroundColor
     ) {
         if (Web2Wave.getInstance().apiKey == null) {
             throw new IllegalStateException("You must initialize apiKey before use");
@@ -326,7 +327,7 @@ public class Web2Wave {
             throw new IllegalArgumentException("You must provide valid url");
         }
 
-        Web2WaveDialog dialog = Web2WaveDialog.create(url, listener, topOffset, bottomOffset);
+        Web2WaveDialog dialog = Web2WaveDialog.create(url, listener, topOffset, bottomOffset, backgroundColor);
         dialog.show(fragmentManager, "web2wave_tag");
     }
 

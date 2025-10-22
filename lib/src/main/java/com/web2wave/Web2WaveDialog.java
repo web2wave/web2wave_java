@@ -22,6 +22,7 @@ public class Web2WaveDialog extends DialogFragment {
     private static final String URL_KEY = "url_key";
     private static final String TOP_OFFSET_KEY = "top_offset";
     private static final String BOTTOM_OFFSET_KEY = "bottom_offset";
+    private static final String BACKGROUND_COLOR_KEY = "background_color";
     private static final String EVENT_QUIZ_FINISHED = "Quiz finished";
     private static final String EVENT_CLOSE_WEB_VIEW = "Close webview";
 
@@ -31,12 +32,13 @@ public class Web2WaveDialog extends DialogFragment {
         this.listener = listener;
     }
 
-    public static Web2WaveDialog create(String url, Web2WaveWebListener listener, int topOffset, int bottomOffset) {
+    public static Web2WaveDialog create(String url, Web2WaveWebListener listener, int topOffset, int bottomOffset, int backgroundColor) {
         Web2WaveDialog dialog = new Web2WaveDialog();
         Bundle args = new Bundle();
         args.putString(URL_KEY, url);
         args.putInt(TOP_OFFSET_KEY, topOffset);
         args.putInt(BOTTOM_OFFSET_KEY, bottomOffset);
+        args.putInt(BACKGROUND_COLOR_KEY, backgroundColor);
         dialog.setArguments(args);
         dialog.setListener(listener);
         return dialog;
@@ -64,11 +66,13 @@ public class Web2WaveDialog extends DialogFragment {
 
         int topOffset = 0;
         int bottomOffset = 0;
+        int backgroundColor = 0;
         String url = null;
         if (args != null) {
             url = args.getString(URL_KEY);
             topOffset = args.getInt(TOP_OFFSET_KEY, 0);
             bottomOffset = args.getInt(BOTTOM_OFFSET_KEY, 0);
+            backgroundColor = args.getInt(BACKGROUND_COLOR_KEY, 0);
         } else {
             return;
         }
@@ -78,6 +82,8 @@ public class Web2WaveDialog extends DialogFragment {
 
         webView.setWebViewClient(new WebViewClient());
         webView.setWebChromeClient(new WebChromeClient());
+
+        webView.setBackgroundColor(backgroundColor);
 
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
