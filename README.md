@@ -163,11 +163,12 @@ class EventListener extends Web2WaveWebListener {
 }
 
 //Open web page with your url
-Web2Wave.showWebView(fragmentManager, url, listener, topOffset, bottomOffset);
+Web2Wave.showWebView(fragmentManager, url, listener, topOffset, bottomOffset, Color.parseColor("#FFFF0000"));
 
 //Close web page
 Web2Wave.closeWebView(fragmentManager);
 ```
+The backgroundColor parameter in showWebView function is optional. If not provided, the default background color will be white.
 
 ## API Reference
 
