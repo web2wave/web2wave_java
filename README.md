@@ -8,6 +8,7 @@ subscriptions and properties through a REST API.
 - Fetch subscription status for users
 - Check for active subscriptions
 - Manage user properties
+- Identify users via device fingerprinting
 - Set third-parties profiles
 - Thread-safe singleton design
 - Built-in error handling
@@ -80,6 +81,14 @@ if (result.isFailure()) {
     System.out.println("Property updated successfully");
 }
 
+```
+
+### Identify users via device fingerprinting
+```java
+// Identify
+Map<String, Object> data = Web2Wave.getInstance().identify();
+
+System.out.println("User identification: "+data.toString());
 ```
 
 ### External Subscription Cancel/Refund/Charge
@@ -197,6 +206,10 @@ Retrieves all properties associated with a user.
 #### `public Result<Boolean> updateUserProperty(String appUserID, String property, String value)`
 
 Updates a specific property for a user.
+
+#### `public Map<String, Object> identify()`
+
+Identifies a user using the device fingerprint and returns identification metadata.
 
 #### `public Result<Boolean> setRevenuecatProfileID(String appUserID, String revenueCatProfileID)`
 
