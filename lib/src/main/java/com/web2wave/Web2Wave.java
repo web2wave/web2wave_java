@@ -3,6 +3,7 @@ package com.web2wave;
 import static com.web2wave.Utils.jsonToMap;
 
 import android.content.res.Resources;
+import android.os.Build;
 import android.util.DisplayMetrics;
 import android.webkit.URLUtil;
 
@@ -338,12 +339,14 @@ public class Web2Wave {
 
     private HttpURLConnection getHttpURLConnection(String url, String method, String body) throws IOException {
         HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
+        String osVersion = Build.VERSION.RELEASE;
         connection.setRequestMethod(method);
         connection.setRequestProperty("api-key", apiKey);
         connection.setRequestProperty("Cache-Control", "no-cache");
         connection.setRequestProperty("Pragma", "no-cache");
         connection.setRequestProperty("screen_size", getScreenSize());
         connection.setRequestProperty("timezone", getTimezone());
+        connection.setRequestProperty("os_version", osVersion);
 
         if ("POST".equals(method)) {
             connection.setRequestProperty("Content-Type", "application/json");
