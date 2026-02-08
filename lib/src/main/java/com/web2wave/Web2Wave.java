@@ -2,6 +2,9 @@ package com.web2wave;
 
 import static com.web2wave.Utils.jsonToMap;
 
+import android.content.res.Resources;
+import android.os.Build;
+import android.util.DisplayMetrics;
 import android.webkit.URLUtil;
 
 import androidx.annotation.NonNull;
@@ -31,6 +34,7 @@ public class Web2Wave {
     private static final String API_SUBSCRIPTION_CANCEL = "api/subscription/cancel";
     private static final String API_SUBSCRIPTION_REFUND = "api/subscription/refund";
     private static final String API_SUBSCRIPTION_CHARGE = "api/subscription/user/charge";
+    private static final String API_USER_IDENTIFY = "api/user/identify";
 
     private static final String KEY_USER = "user";
     private static final String KEY_USER_ID = "user_id";
@@ -265,10 +269,51 @@ public class Web2Wave {
         return updateUserProperty(appUserID, PROFILE_ID_QONVERSION, qonversionProfileID);
     }
 
+    public Map<String, Object> identify() {
+        checkApiKey();
+        String url = buildUrl(API_USER_IDENTIFY, null);
+        String response = makeRequest(url, METHOD_TYPE_GET, null);
+        if (response != null) {
+            try {
+                return jsonToMap(new JSONObject(response));
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+        return null;
+    }
+
     private void checkApiKey() {
         if (apiKey == null) {
             throw new IllegalStateException("You have to initialize apiKey before use");
         }
+    }
+
+    private String getScreenSize() {
+        try {
+            Resources resources = Resources.getSystem();
+            DisplayMetrics displayMetrics = resources.getDisplayMetrics();
+            int width = displayMetrics.widthPixels;
+            int height = displayMetrics.heightPixels;
+            return width + "x" + height;
+        } catch (Exception e) {
+            System.err.println("Failed to get screen size: " + e.getMessage());
+        }
+        return "0x0";
+    }
+
+    private String getTimezone() {
+        try {
+            TimeZone timeZone = TimeZone.getDefault();
+            long offset = timeZone.getOffset(System.currentTimeMillis());
+            long hours = offset / (1000 * 60 * 60);
+            long minutes = Math.abs(offset / (1000 * 60)) % 60;
+            String sign = offset >= 0 ? "+" : "-";
+            return String.format("UTC%s%02d:%02d", sign, Math.abs(hours), minutes);
+        } catch (Exception e) {
+            System.err.println("Failed to get timezone: " + e.getMessage());
+        }
+        return "UTC+00:00";
     }
 
     private String makeRequest(String url, String method, String body) {
@@ -294,10 +339,14 @@ public class Web2Wave {
 
     private HttpURLConnection getHttpURLConnection(String url, String method, String body) throws IOException {
         HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
+        String osVersion = Build.VERSION.RELEASE;
         connection.setRequestMethod(method);
         connection.setRequestProperty("api-key", apiKey);
         connection.setRequestProperty("Cache-Control", "no-cache");
         connection.setRequestProperty("Pragma", "no-cache");
+        connection.setRequestProperty("screen_size", getScreenSize());
+        connection.setRequestProperty("timezone", getTimezone());
+        connection.setRequestProperty("os_version", osVersion);
 
         if ("POST".equals(method)) {
             connection.setRequestProperty("Content-Type", "application/json");
