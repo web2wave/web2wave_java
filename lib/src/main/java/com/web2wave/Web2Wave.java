@@ -8,6 +8,10 @@ import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 
+import android.content.res.Resources;
+import android.os.Build;
+import android.util.DisplayMetrics;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -31,6 +35,7 @@ public class Web2Wave {
     private static final String API_SUBSCRIPTION_CANCEL = "api/subscription/cancel";
     private static final String API_SUBSCRIPTION_REFUND = "api/subscription/refund";
     private static final String API_SUBSCRIPTION_CHARGE = "api/subscription/user/charge";
+    private static final String API_USER_IDENTIFY = "api/user/identify";
 
     private static final String KEY_USER = "user";
     private static final String KEY_USER_ID = "user_id";
@@ -265,6 +270,20 @@ public class Web2Wave {
         return updateUserProperty(appUserID, PROFILE_ID_QONVERSION, qonversionProfileID);
     }
 
+    public Map<String, Object> identify() {
+        checkApiKey();
+        String url = buildUrl(API_USER_IDENTIFY, null);
+        String response = makeRequest(url, METHOD_TYPE_GET, null);
+        if (response != null) {
+            try {
+                return jsonToMap(new JSONObject(response));
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+        return null;
+    }
+
     private void checkApiKey() {
         if (apiKey == null) {
             throw new IllegalStateException("You have to initialize apiKey before use");
@@ -298,6 +317,10 @@ public class Web2Wave {
         connection.setRequestProperty("api-key", apiKey);
         connection.setRequestProperty("Cache-Control", "no-cache");
         connection.setRequestProperty("Pragma", "no-cache");
+        connection.setRequestProperty("platform", "Android");
+        connection.setRequestProperty("screen_size", getScreenSize());
+        connection.setRequestProperty("timezone", getTimezone());
+        connection.setRequestProperty("os_version", getOSVersion());
 
         if ("POST".equals(method)) {
             connection.setRequestProperty("Content-Type", "application/json");
@@ -308,6 +331,27 @@ public class Web2Wave {
             }
         }
         return connection;
+    }
+
+    private String getScreenSize() {
+        DisplayMetrics metrics = Resources.getSystem().getDisplayMetrics();
+        int width = (int) (metrics.widthPixels / metrics.density);
+        int height = (int) (metrics.heightPixels / metrics.density);
+        return width + "x" + height;
+    }
+
+    private String getTimezone() {
+        TimeZone tz = TimeZone.getDefault();
+        int offsetMillis = tz.getOffset(System.currentTimeMillis());
+        int totalMinutes = offsetMillis / (60 * 1000);
+        int hours = totalMinutes / 60;
+        int minutes = Math.abs(totalMinutes % 60);
+        String sign = hours >= 0 ? "+" : "-";
+        return String.format("UTC%s%02d:%02d", sign, Math.abs(hours), minutes);
+    }
+
+    private String getOSVersion() {
+        return "Android " + Build.VERSION.RELEASE;
     }
 
 

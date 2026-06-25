@@ -8,6 +8,7 @@ subscriptions and properties through a REST API.
 - Fetch subscription status for users
 - Check for active subscriptions
 - Manage user properties
+- Identify web2wave user via device fingerprinting
 - Set third-parties profiles
 - Thread-safe singleton design
 - Built-in error handling
@@ -119,6 +120,35 @@ if (resultRefundSubscription.isFailure()) {
 
 ```
 
+### Identify web2wave user
+
+The `identify()` method identifies a user using device fingerprinting and returns identification metadata including the `user_id`. Use it when a deeplink is unavailable.
+
+```java
+Map<String, Object> identificationData = Web2Wave.getInstance().identify();
+
+if (identificationData != null
+        && Integer.valueOf(1).equals(identificationData.get("success"))
+        && identificationData.get("user_id") instanceof String userId) {
+    System.out.println("Identified user: " + userId);
+
+    Web2Wave.getInstance().setAdaptyProfileID(userId, "{adaptyProfileID}");
+} else {
+    System.out.println("Failed to identify user");
+}
+```
+
+**Response format:**
+
+```json
+{
+  "success": 1,
+  "user_id": "identified_user_guid",
+  "match_method": "match_method_used",
+  "platform": "Android"
+}
+```
+
 ### Managing third-party profiles
 
 ```java
@@ -221,6 +251,10 @@ Cancel external subscription
 #### `public Result<Boolean> refundSubscription(String paySystemId, String invoiceId, String comment)`
 
 Refund external subscription
+
+#### `public Map<String, Object> identify()`
+
+Identifies a user using the device fingerprint and returns identification metadata.
 
 #### `public static void showWebView(@NonNull FragmentManager fragmentManager, @NonNull String url, @NonNull Web2WaveWebListener listener, int topOffset, int bottomOffset)`
 
