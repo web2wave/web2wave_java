@@ -321,6 +321,10 @@ public class Web2Wave {
         connection.setRequestProperty("screen_size", getScreenSize());
         connection.setRequestProperty("timezone", getTimezone());
         connection.setRequestProperty("os_version", getOSVersion());
+        String deviceModel = getDeviceModel();
+        if (deviceModel != null) {
+            connection.setRequestProperty("device_model", deviceModel);
+        }
 
         if ("POST".equals(method)) {
             connection.setRequestProperty("Content-Type", "application/json");
@@ -352,6 +356,15 @@ public class Web2Wave {
 
     private String getOSVersion() {
         return "Android " + Build.VERSION.RELEASE;
+    }
+
+    /** Device model for fingerprinting (e.g. "Pixel 7", "SM-S911B"). */
+    private String getDeviceModel() {
+        if (Build.MODEL == null) {
+            return null;
+        }
+        String model = Build.MODEL.trim();
+        return model.isEmpty() ? null : model;
     }
 
 
