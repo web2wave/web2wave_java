@@ -29,6 +29,8 @@ public class Web2Wave {
     private static final String PROFILE_ID_REVENUECAT = "revenuecat_profile_id";
     private static final String PROFILE_ID_ADAPTY = "adapty_profile_id";
     private static final String PROFILE_ID_QONVERSION = "qonversion_profile_id";
+    private static final String PROFILE_ID_APPHUD = "apphud_profile_id";
+    private static final String PROFILE_ID_SUPERWALL = "superwall_profile_id";
 
     private static final String API_SUBSCRIPTIONS = "api/user/subscriptions";
     private static final String API_USER_PROPERTIES = "api/user/properties";
@@ -268,6 +270,14 @@ public class Web2Wave {
 
     public Result<Boolean> setQonversionProfileID(String appUserID, String qonversionProfileID) {
         return updateUserProperty(appUserID, PROFILE_ID_QONVERSION, qonversionProfileID);
+    }
+
+    public Result<Boolean> setApphudProfileID(String appUserID, String apphudProfileID) {
+        return updateUserProperty(appUserID, PROFILE_ID_APPHUD, apphudProfileID);
+    }
+
+    public Result<Boolean> setSuperwallProfileID(String appUserID, String superwallProfileID) {
+        return updateUserProperty(appUserID, PROFILE_ID_SUPERWALL, superwallProfileID);
     }
 
     public Map<String, Object> identify() {
