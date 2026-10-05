@@ -168,6 +168,12 @@ Result<Boolean> revResult = Web2Wave.getInstance().setRevenuecatProfileID("user1
 // Save Qonversion profileID
 Result<Boolean> qonversionResult = Web2Wave.getInstance().setQonversionProfileID("user123", "qonversionProfileID");
 
+// Save Apphud profileID
+Result<Boolean> apphudResult = Web2Wave.getInstance().setApphudProfileID("user123", "apphudProfileID");
+
+// Save Superwall profileID (Superwall.getInstance().getUserId() after identify())
+Result<Boolean> superwallResult = Web2Wave.getInstance().setSuperwallProfileID("user123", "superwallProfileID");
+
 ```
 
 ```java
@@ -239,6 +245,14 @@ Set Adapty profileID
 #### `public Result<Boolean> setQonversionProfileID(String appUserID, String qonversionProfileID)`
 
 Set Qonversion ProfileID
+
+#### `public Result<Boolean> setApphudProfileID(String appUserID, String apphudProfileID)`
+
+Set Apphud ProfileID
+
+#### `public Result<Boolean> setSuperwallProfileID(String appUserID, String superwallProfileID)`
+
+Set Superwall ProfileID
 
 #### `public Result<Boolean> chargeUser(String web2waveUserId, int priceId)`
 
