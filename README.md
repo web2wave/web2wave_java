@@ -36,7 +36,7 @@ In you app-level `build.gradle` file:
 
 ```java
 dependencies {
-    implementation "com.github.web2wave:web2wave_java:1.0.0"
+    implementation "com.github.web2wave:web2wave_java:1.2.1"
 }
 ```
 
@@ -107,9 +107,9 @@ if (resultRefundSubscription.isFailure()) {
 
 
 //Charge existing user with saved payment method
-Result<Boolean> resultChargeUser = Web2Wave.getInstance.chargeUser("User123", 22057);
+Result<Boolean> resultChargeUser = Web2Wave.getInstance().chargeUser("User123", 22057);
 
-if (resultRefundSubscription.isFailure()) {
+if (resultChargeUser.isFailure()) {
     System.out.println("Failed to charge user with error: "+resultChargeUser.getError().getLocalizedMessage());
 } else {
     System.out.println("User charged");

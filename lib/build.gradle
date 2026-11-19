@@ -29,6 +29,8 @@ dependencies {
     implementation libs.appcompat
     implementation libs.material
     testImplementation libs.junit
+    // org.json in android.jar is a stub on the JVM; use the real implementation in local unit tests.
+    testImplementation 'org.json:json:20231013'
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core
 }

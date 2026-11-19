@@ -135,23 +135,14 @@ public class Web2Wave {
         checkApiKey();
         try {
             String url = buildUrl(API_SUBSCRIPTION_CANCEL, null);
-            Map<String, String> bodyMap = new HashMap<>();
-            bodyMap.put(KEY_PAY_SYSTEM, paySystemId);
+            JSONObject body = new JSONObject();
+            body.put(KEY_PAY_SYSTEM, paySystemId);
 
-            if (comment != null && !comment.isBlank()) {
-                bodyMap.put(KEY_COMMENT, comment);
+            if (!ApiResponses.isBlank(comment)) {
+                body.put(KEY_COMMENT, comment);
             }
 
-            String body = new JSONObject(bodyMap).toString();
-            String response = makeRequest(url, METHOD_TYPE_PUT, body);
-            JSONObject json = response != null ? new JSONObject(response) : null;
-
-            if (json != null && "1".equals(json.optString("success"))) {
-                return Result.success(true);
-            } else {
-                return Result.failure(new Exception(json != null ? json.optString("message", "Unknown error") : "Empty response"));
-            }
-
+            return sendAction(url, METHOD_TYPE_PUT, body);
         } catch (Exception e) {
             return Result.failure(e);
         }
@@ -162,20 +153,12 @@ public class Web2Wave {
         try {
             String url = buildUrl(API_SUBSCRIPTION_CHARGE, null);
 
-            Map<String, String> bodyMap = new HashMap<>();
-            bodyMap.put(KEY_USER_ID, web2waveUserId);
-            bodyMap.put(KEY_PRICE_ID, Integer.toString(priceId));
+            JSONObject body = new JSONObject();
+            body.put(KEY_USER_ID, web2waveUserId);
+            body.put(KEY_PRICE_ID, priceId);
 
-            String body = new JSONObject(bodyMap).toString();
-            String response = makeRequest(url, METHOD_TYPE_PUT, body);
-            JSONObject json = response != null ? new JSONObject(response) : null;
-
-            if (json != null && "1".equals(json.optString("success"))) {
-                return Result.success(true);
-            } else {
-                return Result.failure(new Exception(json != null ? json.optString("message", "Unknown error") : "Empty response"));
-            }
-
+            // The charge route is POST only (PUT returns 405).
+            return sendAction(url, METHOD_TYPE_POST, body);
         } catch (Exception e) {
             return Result.failure(e);
         }
@@ -186,26 +169,53 @@ public class Web2Wave {
         try {
             String url = buildUrl(API_SUBSCRIPTION_REFUND, null);
 
-            Map<String, String> bodyMap = new HashMap<>();
-            bodyMap.put(KEY_PAY_SYSTEM, paySystemId);
-            bodyMap.put(KEY_INVOICE_ID, invoiceId);
+            JSONObject body = new JSONObject();
+            body.put(KEY_PAY_SYSTEM, paySystemId);
+            body.put(KEY_INVOICE_ID, invoiceId);
 
-            if (comment != null && !comment.isBlank()) {
-                bodyMap.put(KEY_COMMENT, comment);
+            if (!ApiResponses.isBlank(comment)) {
+                body.put(KEY_COMMENT, comment);
             }
 
-            String body = new JSONObject(bodyMap).toString();
-            String response = makeRequest(url, METHOD_TYPE_PUT, body);
-            JSONObject json = response != null ? new JSONObject(response) : null;
-
-            if (json != null && "1".equals(json.optString("success"))) {
-                return Result.success(true);
-            } else {
-                return Result.failure(new Exception(json != null ? json.optString("message", "Unknown error") : "Empty response"));
-            }
-
+            return sendAction(url, METHOD_TYPE_PUT, body);
         } catch (Exception e) {
             return Result.failure(e);
+        }
+    }
+
+    /**
+     * Sends a mutating request whose response carries a {@code success} flag and, on failure,
+     * the reason in {@code error_msg} (or {@code message}).
+     */
+    private Result<Boolean> sendAction(String url, String method, JSONObject body) throws IOException {
+        HttpResponse response = execute(url, method, body.toString());
+        JSONObject json = parseJsonOrNull(response.body);
+
+        if (ApiResponses.isSuccessfulStatus(response.code) && ApiResponses.isSuccess(json)) {
+            return Result.success(true);
+        }
+
+        String fallback;
+        if (json != null) {
+            fallback = "Unknown error";
+        } else if (response.body == null || response.body.isEmpty()) {
+            fallback = ApiResponses.isSuccessfulStatus(response.code)
+                    ? "Empty response"
+                    : "Unexpected response code: " + response.code;
+        } else {
+            fallback = "Unexpected response (HTTP " + response.code + ")";
+        }
+        return Result.failure(new Exception(ApiResponses.errorMessage(json, fallback)));
+    }
+
+    private static JSONObject parseJsonOrNull(String text) {
+        if (text == null || text.isEmpty()) {
+            return null;
+        }
+        try {
+            return new JSONObject(text);
+        } catch (JSONException e) {
+            return null;
         }
     }
 
@@ -247,17 +257,24 @@ public class Web2Wave {
             return Result.failure(e);
         }
 
-        String response = makeRequest(url, METHOD_TYPE_POST, body.toString());
-        if (response != null) {
+        HttpResponse response;
+        try {
+            response = execute(url, METHOD_TYPE_POST, body.toString());
+        } catch (IOException e) {
+            return Result.failure(new Exception("Failed to update properties", e));
+        }
+
+        if (ApiResponses.isSuccessfulStatus(response.code) && response.body != null) {
             try {
-                JSONObject jsonResponse = new JSONObject(response);
+                JSONObject jsonResponse = new JSONObject(response.body);
                 Boolean isSuccessful = jsonResponse.optString(KEY_RESULT, "").equals("1");
                 return Result.success(isSuccessful);
             } catch (JSONException e) {
                 return Result.failure(e);
             }
         }
-        return Result.failure(new Exception("Failed to update properties"));
+        return Result.failure(new Exception(
+                ApiResponses.errorMessage(parseJsonOrNull(response.body), "Failed to update properties")));
     }
 
     public Result<Boolean> setRevenuecatProfileID(String appUserID, String revenueCatProfileID) {
@@ -300,31 +317,63 @@ public class Web2Wave {
         }
     }
 
+    /** Returns the response body for a 2xx response, or null on any failure (used by data-returning methods). */
     private String makeRequest(String url, String method, String body) {
         try {
-            HttpURLConnection connection = getHttpURLConnection(url, method, body);
-            if (connection.getResponseCode() == HttpURLConnection.HTTP_OK) {
-                BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-                StringBuilder response = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    response.append(line);
-                }
-                reader.close();
-                return response.toString();
-            } else {
-                System.err.println("Unexpected response code: " + connection.getResponseCode());
+            HttpResponse response = execute(url, method, body);
+            if (ApiResponses.isSuccessfulStatus(response.code)) {
+                return response.body;
             }
+            System.err.println("Unexpected response code: " + response.code);
         } catch (Exception e) {
             System.err.println("Request failed: " + e.getMessage());
         }
         return null;
     }
 
+    /** Performs the request and returns the status code with the body (the error body for non-2xx responses). */
+    private HttpResponse execute(String url, String method, String body) throws IOException {
+        HttpURLConnection connection = getHttpURLConnection(url, method, body);
+        try {
+            int code = connection.getResponseCode();
+            InputStream stream = ApiResponses.isSuccessfulStatus(code)
+                    ? connection.getInputStream()
+                    : connection.getErrorStream();
+            return new HttpResponse(code, readBody(stream));
+        } finally {
+            connection.disconnect();
+        }
+    }
+
+    private static String readBody(InputStream stream) throws IOException {
+        if (stream == null) {
+            return null;
+        }
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
+            StringBuilder response = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                response.append(line);
+            }
+            return response.toString();
+        }
+    }
+
+    private static final class HttpResponse {
+        final int code;
+        final String body;
+
+        HttpResponse(int code, String body) {
+            this.code = code;
+            this.body = body;
+        }
+    }
+
     private HttpURLConnection getHttpURLConnection(String url, String method, String body) throws IOException {
         HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
         connection.setRequestMethod(method);
         connection.setRequestProperty("api-key", apiKey);
+        connection.setRequestProperty("Accept", "application/json");
         connection.setRequestProperty("Cache-Control", "no-cache");
         connection.setRequestProperty("Pragma", "no-cache");
         connection.setRequestProperty("platform", "Android");
@@ -336,7 +385,8 @@ public class Web2Wave {
             connection.setRequestProperty("device_model", deviceModel);
         }
 
-        if ("POST".equals(method)) {
+        // Send the JSON body for every method that has one (POST, PUT, PATCH), not only POST.
+        if (body != null && !METHOD_TYPE_GET.equals(method)) {
             connection.setRequestProperty("Content-Type", "application/json");
             connection.setDoOutput(true);
             try (OutputStream os = connection.getOutputStream()) {
